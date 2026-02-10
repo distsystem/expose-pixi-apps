@@ -18,17 +18,32 @@ def get_clone_base_dir() -> Path:
     return Path(runner_temp) / 'expose-pixi-apps'
 
 
-def parse_input() -> list[dict[str, object]]:
-    raw = os.environ.get('INPUT_APPS', '')
-    if not raw:
+def parse_input() -> dict[str, object]:
+    git_url = os.environ.get('INPUT_GIT', '')
+    if not git_url:
+        raise ValueError("'git' input is required")
+
+    apps_raw = os.environ.get('INPUT_APPS', '')
+    if not apps_raw:
         raise ValueError("'apps' input is required")
-    entries = yaml.safe_load(raw)
-    if not isinstance(entries, list):
+    apps = yaml.safe_load(apps_raw)
+    if not isinstance(apps, list):
         raise ValueError("'apps' input must be a YAML list")
-    for entry in entries:
-        if 'git' not in entry or 'apps' not in entry:
-            raise ValueError("each entry must have 'git' and 'apps' fields")
-    return entries
+
+    entry: dict[str, object] = {'git': git_url, 'apps': apps}
+
+    if ref := os.environ.get('INPUT_REF', ''):
+        entry['ref'] = ref
+    if env := os.environ.get('INPUT_ENVIRONMENT', ''):
+        entry['environment'] = env
+
+    exclude_raw = os.environ.get('INPUT_EXCLUDE_ENV_VARS', '')
+    if exclude_raw:
+        exclude = yaml.safe_load(exclude_raw)
+        if isinstance(exclude, list):
+            entry['exclude-env-vars'] = exclude
+
+    return entry
 
 
 def find_pixi() -> str:
@@ -153,15 +168,14 @@ def main() -> None:
         print('::error::expose-pixi-apps is not supported on Windows')
         sys.exit(1)
 
-    entries = parse_input()
+    entry = parse_input()
     pixi = find_pixi()
     ensure_trampoline_bin(pixi)
 
     config_dir = get_pixi_home() / 'bin' / 'trampoline_configuration'
     config_dir.mkdir(parents=True, exist_ok=True)
 
-    for entry in entries:
-        expose_entry(pixi, entry)
+    expose_entry(pixi, entry)
 
 
 if __name__ == '__main__':

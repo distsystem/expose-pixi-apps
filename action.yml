@@ -3,13 +3,22 @@ description: Clone pixi projects and expose executables via pixi's trampoline me
 author: rok
 
 inputs:
-  apps:
-    description: |
-      A YAML list of pixi projects to clone and expose executables from.
-      Each entry must have `git` (clone URL) and `apps` (list of executable names).
-      Optional: `ref` (git ref), `environment` (pixi env, default: "default"), `exclude-env-vars` (env vars to filter out).
-      Only supported on Linux and macOS.
+  git:
+    description: Git clone URL of the pixi project
     required: true
+  apps:
+    description: Executable names to expose (YAML list, e.g. "[nue, nuefsd]")
+    required: true
+  ref:
+    description: Git ref to checkout (branch, tag, or commit)
+    required: false
+  environment:
+    description: Pixi environment to use (default: "default")
+    required: false
+    default: default
+  exclude-env-vars:
+    description: Environment variables to filter out (YAML list)
+    required: false
 
 runs:
   using: composite
@@ -17,5 +26,9 @@ runs:
     - name: Expose pixi apps
       shell: bash
       env:
+        INPUT_GIT: ${{ inputs.git }}
         INPUT_APPS: ${{ inputs.apps }}
+        INPUT_REF: ${{ inputs.ref }}
+        INPUT_ENVIRONMENT: ${{ inputs.environment }}
+        INPUT_EXCLUDE_ENV_VARS: ${{ inputs.exclude-env-vars }}
       run: python "${{ github.action_path }}/src/main.py"
