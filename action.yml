@@ -1,0 +1,21 @@
+name: expose-pixi-apps
+description: Clone pixi projects and expose executables via pixi's trampoline mechanism
+author: rok
+
+inputs:
+  apps:
+    description: |
+      A YAML list of pixi projects to clone and expose executables from.
+      Each entry must have `git` (clone URL) and `apps` (list of executable names).
+      Optional: `ref` (git ref), `environment` (pixi env, default: "default"), `exclude-env-vars` (env vars to filter out).
+      Only supported on Linux and macOS.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Expose pixi apps
+      shell: bash
+      env:
+        INPUT_APPS: ${{ inputs.apps }}
+      run: python "${{ github.action_path }}/src/main.py"
