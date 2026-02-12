@@ -40,7 +40,9 @@ def parse_input() -> dict[str, object]:
     run_raw = os.environ.get('INPUT_RUN', '')
     if run_raw:
         run_cmds = yaml.safe_load(run_raw)
-        if isinstance(run_cmds, list):
+        if isinstance(run_cmds, str):
+            entry['run'] = [run_cmds]
+        elif isinstance(run_cmds, list):
             entry['run'] = run_cmds
 
     exclude_raw = os.environ.get('INPUT_EXCLUDE_ENV_VARS', '')
@@ -144,7 +146,7 @@ def expose_entry(pixi: str, entry: dict[str, object]) -> None:
 
     for cmd in entry.get('run', []):
         print(f'Running: pixi run {cmd}')
-        pixi_run(pixi, clone_dir, cmd, environment)
+        pixi_run(pixi, clone_dir, cmd)
 
     print(f"Getting shell-hook for environment '{environment}'...")
     hook = get_shell_hook(pixi, clone_dir, environment)
