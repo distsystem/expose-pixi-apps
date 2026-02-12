@@ -16,6 +16,9 @@ inputs:
     description: 'Pixi environment to use (default: "default")'
     required: false
     default: default
+  run:
+    description: 'Commands to run after pixi install via pixi run (YAML list, e.g. "[build, test]")'
+    required: false
   exclude-env-vars:
     description: Environment variables to filter out (YAML list)
     required: false
@@ -30,5 +33,6 @@ runs:
         INPUT_APPS: ${{ inputs.apps }}
         INPUT_REF: ${{ inputs.ref }}
         INPUT_ENVIRONMENT: ${{ inputs.environment }}
+        INPUT_RUN: ${{ inputs.run }}
         INPUT_EXCLUDE_ENV_VARS: ${{ inputs.exclude-env-vars }}
       run: python "${{ github.action_path }}/src/main.py"

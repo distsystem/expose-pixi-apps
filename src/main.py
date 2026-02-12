@@ -37,6 +37,12 @@ def parse_input() -> dict[str, object]:
     if env := os.environ.get('INPUT_ENVIRONMENT', ''):
         entry['environment'] = env
 
+    run_raw = os.environ.get('INPUT_RUN', '')
+    if run_raw:
+        run_cmds = yaml.safe_load(run_raw)
+        if isinstance(run_cmds, list):
+            entry['run'] = run_cmds
+
     exclude_raw = os.environ.get('INPUT_EXCLUDE_ENV_VARS', '')
     if exclude_raw:
         exclude = yaml.safe_load(exclude_raw)
@@ -95,6 +101,14 @@ def pixi_install(pixi: str, clone_dir: Path, environment: str | None = None) -> 
     subprocess.run(cmd, check=True, cwd=clone_dir)
 
 
+def pixi_run(pixi: str, clone_dir: Path, cmd: str, environment: str | None = None) -> None:
+    args = [pixi, 'run', '--manifest-path', str(clone_dir / 'pixi.toml')]
+    if environment and environment != 'default':
+        args.extend(['-e', environment])
+    args.append(cmd)
+    subprocess.run(args, check=True, cwd=clone_dir)
+
+
 def get_shell_hook(pixi: str, clone_dir: Path, environment: str | None = None) -> dict[str, object]:
     cmd = [pixi, 'shell-hook', '--json', '--manifest-path', str(clone_dir / 'pixi.toml')]
     if environment and environment != 'default':
@@ -127,6 +141,10 @@ def expose_entry(pixi: str, entry: dict[str, object]) -> None:
     environment = str(entry.get('environment', 'default'))
 
     pixi_install(pixi, clone_dir, environment)
+
+    for cmd in entry.get('run', []):
+        print(f'Running: pixi run {cmd}')
+        pixi_run(pixi, clone_dir, cmd, environment)
 
     print(f"Getting shell-hook for environment '{environment}'...")
     hook = get_shell_hook(pixi, clone_dir, environment)
