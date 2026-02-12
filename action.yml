@@ -7,13 +7,13 @@ inputs:
     description: Git clone URL of the pixi project
     required: true
   apps:
-    description: Executable names to expose (YAML list, e.g. "[nue, nuefsd]")
+    description: 'Executable names to expose (YAML list, e.g. "[nue, nuefsd]")'
     required: true
   ref:
     description: Git ref to checkout (branch, tag, or commit)
     required: false
   environment:
-    description: Pixi environment to use (default: "default")
+    description: 'Pixi environment to use (default: "default")'
     required: false
     default: default
   exclude-env-vars:

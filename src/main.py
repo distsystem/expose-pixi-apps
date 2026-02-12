@@ -65,8 +65,8 @@ def get_trampoline_bin() -> Path:
 def ensure_trampoline_bin(pixi: str) -> None:
     if get_trampoline_bin().exists():
         return
-    print('Trampoline binary not found, bootstrapping with `pixi global install pixi`...')
-    subprocess.run([pixi, 'global', 'install', 'pixi'], check=True)
+    print('Trampoline binary not found, bootstrapping with `pixi global install coreutils`...')
+    subprocess.run([pixi, 'global', 'install', 'coreutils'], check=True)
 
 
 def clone_repo(entry: dict[str, object]) -> Path:
@@ -75,13 +75,14 @@ def clone_repo(entry: dict[str, object]) -> Path:
     clone_dir = get_clone_base_dir() / repo_name
     clone_dir.parent.mkdir(parents=True, exist_ok=True)
 
-    cmd = ['git', 'clone', '--depth', '1']
+    git_args = ['--depth', '1']
     if ref := entry.get('ref'):
-        cmd.extend(['--branch', str(ref)])
-    cmd.extend([git_url, str(clone_dir)])
+        git_args.extend(['--branch', str(ref)])
 
     ref_info = f' (ref: {ref})' if ref else ''
     print(f'Cloning {git_url}{ref_info} into {clone_dir}')
+
+    cmd = ['git', 'clone'] + git_args + [git_url, str(clone_dir)]
     subprocess.run(cmd, check=True)
     return clone_dir
 
@@ -135,11 +136,11 @@ def expose_entry(pixi: str, entry: dict[str, object]) -> None:
     if not conda_prefix:
         raise RuntimeError(f"CONDA_PREFIX not found in shell-hook output for environment '{environment}'")
 
-    # Build path_diff
+    # Build path_diff (colon-separated string, matching pixi trampoline format)
     hook_path = env_vars.get('PATH', '')
     current_path = os.environ.get('PATH', '')
     new_path = hook_path[: len(hook_path) - len(current_path)] if hook_path.endswith(current_path) else hook_path
-    path_diff = [p for p in new_path.split(os.pathsep) if p]
+    path_diff = os.pathsep.join(p for p in new_path.split(os.pathsep) if p)
 
     # Filter env vars
     exclude_env_vars = entry.get('exclude-env-vars')
@@ -152,7 +153,7 @@ def expose_entry(pixi: str, entry: dict[str, object]) -> None:
     for app in entry['apps']:
         config_path = config_dir / f'{app}.json'
         exe_path = Path(conda_prefix) / 'bin' / app
-        config = {'exe': str(exe_path), 'path': path_diff, 'env': filtered_env}
+        config = {'exe': str(exe_path), 'path_diff': path_diff, 'env': filtered_env}
 
         print(f"Writing trampoline config for '{app}' -> {exe_path}")
         config_path.write_text(json.dumps(config, indent=2))
